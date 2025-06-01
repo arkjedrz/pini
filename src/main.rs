@@ -1,22 +1,24 @@
+mod composer;
+mod format_config;
+mod parser;
+
+use std::env::current_dir;
 use std::fs;
 use std::io::{Error, Read, stdin};
 use std::path::PathBuf;
 
 use clap::Parser;
-mod parser;
-use parser::parse;
-mod composer;
 use composer::compose;
-
-// TODO:
-// - add config file support
+use format_config::FormatConfig;
+use parser::parse;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about=None)]
 struct Args {
-    /// Path to file to process.
+    /// Input path.
     #[arg(short, long, default_value(None))]
     in_path: Option<PathBuf>,
+    /// Output path.
     #[arg(short, long, default_value(None))]
     out_path: Option<PathBuf>,
 }
@@ -49,14 +51,40 @@ fn save_content(path: Option<PathBuf>, content: String) -> Result<(), Error> {
     }
 }
 
+/// Find config file.
+fn find_config_file() -> Option<PathBuf> {
+    let cwd = current_dir().unwrap();
+    let mut curr_dir = Some(cwd.as_path());
+    while let Some(p) = curr_dir {
+        let config_path = p.join(".pini");
+        if config_path.exists() {
+            return Some(config_path);
+        }
+
+        // Change processed directory.
+        curr_dir = p.parent();
+    }
+
+    None
+}
+
 fn main() {
+    // Parse arguments.
     let args = Args::parse();
 
+    // Find and load config.
+    let config_path = find_config_file();
+    let config = match config_path {
+        Some(p) => FormatConfig::load(p),
+        None => FormatConfig::new(),
+    };
+
+    // Run processing.
     let input = read_content(args.in_path).expect("Failed to read input file");
 
     let parsed = parse(input).expect("Failed to parse content");
 
-    let output = compose(parsed).expect("Failed to compose output");
+    let output = compose(parsed, &config).expect("Failed to compose output");
 
     save_content(args.out_path, output).expect("Failed to save to output file");
 }
