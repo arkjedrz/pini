@@ -2,6 +2,16 @@
 name = "pini"
 version = "0.1.0"
 edition = "2024"
+description = "Basic INI file formatter."
+repository = "https://github.com/arkjedrz/pini"
+license = "MIT"
+# Required by 'cargo aur'.
+authors = ["Arkadiusz Jędrzejewski"]
 
 [dependencies]
 clap = { version = "4.5.39", features = ["derive"] }
+
+[package.metadata.generate-rpm]
+assets = [
+    { source = "target/release/pini", dest = "/usr/bin/pini", mode = "755" },
+]
