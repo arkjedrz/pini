@@ -1,0 +1,2 @@
+# pini
+INI file formatter.
